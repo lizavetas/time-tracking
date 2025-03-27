@@ -1,13 +1,10 @@
+import WeekView from './components/components/WeekView';
 import './App.css'
 
-
 function App() {
-
-  return (
-    <>
-    APP
-    </>
-  )
+    return (
+        <WeekView/>
+    )
 }
 
 export default App
