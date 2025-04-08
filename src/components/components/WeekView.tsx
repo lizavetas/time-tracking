@@ -1,82 +1,155 @@
-import  { useState } from 'react'
-import Grid from '@mui/material/Grid2';
-import { Box, Typography, Button, Stack } from '@mui/material'
 import {
-    startOfWeek,
-    addDays,
-    format,
-    addWeeks,
-    subWeeks,
-    isSameDay
-} from 'date-fns'
+    Box,
+    Typography,
+    IconButton,
+    List,
+    ListItem,
+    ListItemText,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    Button,
+    Stack
+} from '@mui/material';
+import {useState} from 'react';
+import {format, addDays, startOfWeek, addWeeks} from 'date-fns';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import AddIcon from '@mui/icons-material/Add';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
-const entries = [
-    {
-        title: 'Task 1',
-        time: '9:00 am – 10:00 am',
-        duration: '1:00',
-        date: new Date(2025, 2, 24)
-    },
-    {
-        title: 'Task 1',
-        time: '10:00 am – 2:30 pm',
-        duration: '4:30',
-        date: new Date(2025, 2, 25)
-    },
-    {
-        title: 'Task 3',
-        time: '9:00 am – 1:25 pm',
-        duration: '4:25',
-        date: new Date(2025, 2, 26)
-    }
-]
+interface Task {
+    title: string;
+    time: string;
+}
 
-export default function WeekView() {
-    const [currentWeek, setCurrentWeek] = useState(new Date())
+export default function WeekViewPage() {
+    const [weekOffset, setWeekOffset] = useState(0);
+    const baseDate = addWeeks(new Date(), weekOffset);
+    const weekStart = startOfWeek(baseDate, {weekStartsOn: 1});
+    const weekDays = Array.from({length: 7}, (_, i) => addDays(weekStart, i));
 
-    const start = startOfWeek(currentWeek, { weekStartsOn: 1 })
-    const days = Array.from({ length: 7 }, (_, i) => addDays(start, i))
+    const [tasks, setTasks] = useState<Record<string, Task[]>>({});
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedDay, setSelectedDay] = useState<string>('');
+    const [newTask, setNewTask] = useState<{ title: string; time: string }>({title: '', time: ''});
+
+    const handleOpenDialog = (dayKey: string) => {
+        setSelectedDay(dayKey);
+        setDialogOpen(true);
+    };
+
+    const handleCloseDialog = () => {
+        setDialogOpen(false);
+        setNewTask({title: '', time: ''});
+    };
+
+    const handleAddTask = () => {
+        if (!newTask.title || !newTask.time || !selectedDay) return;
+        setTasks((prev) => ({
+            ...prev,
+            [selectedDay]: [...(prev[selectedDay] || []), newTask],
+        }));
+        handleCloseDialog();
+    };
 
     return (
-        <Box p={2}>
-            <Stack direction='row' justifyContent='space-between' alignItems='center' mb={2}>
-                <Button onClick={() => setCurrentWeek(d => subWeeks(d, 1))}>← Prev</Button>
-                <Typography variant='h6'>
-                    {format(start, 'MMM dd')} – {format(addDays(start, 6), 'MMM dd, yyyy')}
-                </Typography>
-                <Button onClick={() => setCurrentWeek(d => addWeeks(d, 1))}>Next →</Button>
-            </Stack>
+        <Box display="flex">
+            {/* Sidebar */}
+            <Box
+                sx={{
+                    width: 80,
+                    backgroundColor: '#2f3a4f',
+                    minHeight: '100vh',
+                    paddingTop: '2rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    py: 2,
+                    gap: 2,
+                    color: 'white',
+                    position: 'sticky',
+                    top: 0,
+                }}
+            >
+                <Box>
+                    <AccessTimeIcon fontSize="large" />
+                    <Typography>Hours</Typography>
+                </Box>
+                <Box>
+                    <CheckCircleIcon fontSize="large" />
+                    <Typography>Projects</Typography>
+                </Box>
+                <Box>
+                    <BarChartIcon fontSize="large" />
+                    <Typography>Reports</Typography>
+                </Box>
+            </Box>
 
-            <Grid container spacing={2}>
-                {days.map((day, i) => (
-                    <Grid  sx={{ minWidth: 140, flex: 1 }} key={i}>
-                        <Box>
-                            <Typography variant='subtitle1' align='center'>
-                                {format(day, 'EEE dd')}
-                            </Typography>
+            <Box flex={1} maxHeight="100vh" overflow="auto" p={2}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                    <IconButton onClick={() => setWeekOffset((w) => w - 1)}>
+                        <ArrowBackIcon/>
+                    </IconButton>
+                    <Typography variant="h5">Week of {format(weekStart, 'MMM dd, yyyy')}</Typography>
+                    <IconButton onClick={() => setWeekOffset((w) => w + 1)}>
+                        <ArrowForwardIcon/>
+                    </IconButton>
+                </Stack>
 
-                            <Box mt={2}>
-                                {entries
-                                    .filter(e => isSameDay(e.date, day))
-                                    .map((entry, j) => (
-                                        <Box
-                                            key={j}
-                                            mb={2}
-                                            p={1}
-                                            border={1}
-                                            borderRadius={1}
-                                        >
-                                            <Typography variant='body2'>{entry.title}</Typography>
-                                            <Typography variant='caption'>
-                                                {entry.time} ({entry.duration})
-                                            </Typography>
-                                        </Box>
+                <Stack
+                    direction="row"
+                    sx={{overflowX: 'auto', width: '100%'}}
+                >
+                    {weekDays.map((day) => {
+                        const dayKey = format(day, 'yyyy-MM-dd');
+                        return (
+                            <Box key={dayKey} sx={{flex: '1 1 100%', border: '1px solid grey'}} minWidth={140}>
+                                <Typography variant="h6">{format(day, 'EEE, MMM dd')}</Typography>
+                                <List dense>
+                                    {(tasks[dayKey] || []).map((task, idx) => (
+                                        <ListItem key={idx} disablePadding>
+                                            <ListItemText primary={task.title} secondary={task.time}/>
+                                        </ListItem>
                                     ))}
+                                </List>
+                                <IconButton size="small" onClick={() => handleOpenDialog(dayKey)}>
+                                    <AddIcon fontSize="small"/>
+                                </IconButton>
                             </Box>
-                        </Box>
-                    </Grid>
-                ))}
-            </Grid>
+                        );
+                    })}
+                </Stack>
+
+                <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
+                    <DialogTitle>New Task</DialogTitle>
+                    <DialogContent>
+                        <Stack spacing={2} mt={1}>
+                            <TextField
+                                label="Title"
+                                value={newTask.title}
+                                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                            />
+                            <TextField
+                                label="Time"
+                                placeholder="e.g. 14:00–15:30"
+                                value={newTask.time}
+                                onChange={(e) => setNewTask({...newTask, time: e.target.value})}
+                            />
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleCloseDialog}>Cancel</Button>
+                        <Button onClick={handleAddTask} variant="contained">
+                            Add
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            </Box>
         </Box>
-    )
+    );
 }
